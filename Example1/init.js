@@ -46,8 +46,8 @@ function init() {
         data.player = character;
         var tileRects = [{ x1: 0, y1: 0, x2: 1, y2: 1 }, { x1: 1, y1: 1, x2: 3, y2: 3 }];
         var tile = new Tile(tileRects); 
-        tile.tileIndex = 0;
-        tile.tileSheets = [sheet2];
+        tile.tileX = tile.tileY = 0;
+        tile.tileSheet = sheet2;
         data.tiles.push(tile);
         data.backgroundProcesses.push(createDuelBot(character, computer, 150, false));
         data.backgroundProcesses.push(createStrafingBot(character, retard, 250, 550, true));

@@ -185,8 +185,9 @@ function Thing(x, y, solid) {
 
 function Tile(blockRects) {
     this.blockRects = blockRects;
-    this.tileIndex = -1;
-    this.tileSheets = [];
+    this.tileSheet = null;
+    this.tileX = 0;
+    this.tileY = 0;
 }
 
 function Character(id, weapon, radius) {
@@ -335,11 +336,13 @@ function createInfantryScene(data) {
         controller.grid.loopPixels(x1, y1, x1 + width - 1, y1 + height - 1, function (b, i, j) {
         
             if (b.tile) {
-                var theActualTile = b.tile.tileSheets[b.tile.tileIndex];
                 var tileX = i * controller.grid.blockLength - x1;
                 var tileY = j * controller.grid.blockLength - y1;
-                if (theActualTile) {
-                    theActualTile.draw(context, tileX, tileY, controller.grid.blockLength, controller.grid.blockLength);
+                if (b.tile.tileSheet) {
+                    b.tile.tileSheet.animateX = b.tile.tileX;
+                    b.tile.tileSheet.animateY = b.tile.tileY;
+                    b.tile.tileSheet.alive = false;
+                    b.tile.tileSheet.draw(context, tileX, tileY, controller.grid.blockLength, controller.grid.blockLength);
                 } else {
                     Draw.drawRect(context, tileX, tileY, controller.grid.blockLength, controller.grid.blockLength, '#242424');
                 }
@@ -572,7 +575,7 @@ function DialogueSceneData() {
     this.percentageSpeed = 0.0001;
     this.lifetime = 8000;
     this.fontSize = 14;
-    this.fontColor = 'white';
+    this.fontColor = '#888888';
     this.onFinish = function () {};
 }
 
