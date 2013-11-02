@@ -6,8 +6,8 @@ function init() {
     dData1.lines.push('In a galaxy far, far, near');
     dData1.onFinish = function () {
         var weapon = new Weapon();
-        var sheet = new AnimatedTileSheet('example.jpeg', 400, 400, 2, 2);
-        var sheet2 = new AnimatedTileSheet('example2.jpeg', 400, 400, 2, 2);
+        var sheet = new AnimatedTileSheet('Example1/example.jpeg', 400, 400, 2, 2);
+        var sheet2 = new AnimatedTileSheet('Example1/example2.jpeg', 400, 400, 2, 2);
         sheet.autoTick = true;
         var character = new Character('a', weapon, 15);
         character.tileSheets = [sheet];
