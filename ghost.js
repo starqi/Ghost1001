@@ -1,125 +1,182 @@
-
 init = Example1;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 // Example
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function Example1() {
     var canvas = document.getElementById('canvas');
-    var weapon = new Weapon();
-    var sheet = new AnimatedTileSheet('asdf.jpeg', 400, 400, 2, 2);
-    sheet.autoTick = true;
-    var character = new Character('a', weapon, 15);
-    character.tileSheets = [sheet];
-    character.tileIndex = 0;
-    var computer = new Character('b', weapon, 15);
-    computer.tileSheets = [sheet];
-    computer.tileIndex = 0;
-    computer.x = 45;
-    computer.y = 45;
-    var retard = new Character('c', weapon, 15);
-    retard.x = 15;
-    retard.y = 15;
-    retard.tileSheets = [sheet];
-    retard.tileIndex = 0;
-    var data = new Data();
-    data.onCharacterBulletHit = function (controller, character, bullet) {
-        character.hp -= bullet.damage;
-        if (character.hp < 0) character.hp = character.maxHp;
-    };
-    data.things.push(character);
-    data.things.push(computer);
-    data.things.push(retard);
-    data.player = character;
-    data.backgroundProcesses.push(createDuelBot(character, computer, 150));
-    data.backgroundProcesses.push(createRetardBot(character, retard, 250, true));
-    data.onBegin = function (controller) {
-        controller.dialogueText = 'Sup niggas';
-        controller.dialogueRemaining = 1500;
-    }
-    var scene = createInfantryScene(data);
     var controls = registerControls(canvas);
-    playScene(60, controls, canvas, scene);
+    var dData1 = new DialogueSceneData();
+    dData1.lines.push('Once upon a time');
+    dData1.lines.push('In a galaxy far, far, near');
+    dData1.onFinish = function () {
+        var weapon = new Weapon();
+        var sheet = new AnimatedTileSheet('example.jpeg', 400, 400, 2, 2);
+        var sheet2 = new AnimatedTileSheet('example2.jpeg', 400, 400, 2, 2);
+        sheet.autoTick = true;
+        var character = new Character('a', weapon, 15);
+        character.tileSheets = [sheet];
+        character.tileIndex = 0;
+        var computer = new Character('b', weapon, 15);
+        computer.tileSheets = [sheet];
+        computer.tileIndex = 0;
+        computer.x = 45;
+        computer.y = 45;
+        var retard = new Character('c', weapon, 15);
+        retard.x = 15;
+        retard.y = 15;
+        retard.tileSheets = [sheet];
+        retard.tileIndex = 0;
+        var data = new InfantrySceneData();
+        var shotByTupac = false;
+        data.onCharacterBulletHit = function (controller, character, bullet) {
+            character.hp -= bullet.damage;
+            if (character.hp < 0) {
+                character.hp = 0;
+                shotByTupac = true;
+                controller.fadeStart = controller.fadeRemaining = 3000;
+                controller.fadeDarkerElseLighter = true;
+                controller.dialogueText = 'OH NO, MURDER!';
+                controller.dialogueRemaining = 4000;
+            }
+        };
+        data.onUpdate = function (controller) {
+            if (shotByTupac) {
+                controller.finished = true;
+            }
+        };
+        data.things.push(character);
+        data.things.push(computer);
+        data.things.push(retard);
+        data.player = character;
+        var tileRects = [{ x1: 0, y1: 0, x2: 1, y2: 1 }, { x1: 1, y1: 1, x2: 3, y2: 3 }];
+        var tile = new Tile(tileRects); 
+        tile.tileIndex = 0;
+        tile.tileSheets = [sheet2];
+        data.tiles.push(tile);
+        data.backgroundProcesses.push(createDuelBot(character, computer, 150, false));
+        data.backgroundProcesses.push(createStrafingBot(character, retard, 250, 550, true));
+        data.onBegin = function (controller) {
+            controller.dialogueText = 'Welcome to the Jungle';
+            controller.dialogueRemaining = 1500;
+        }
+        data.onFinish = function (controller) {
+            var dData1 = new DialogueSceneData();
+            dData1.lines.push('And the story ends');
+            dData1.lines.push('A stupid story, what a pity');
+            dData1.lines.push('Shameful');
+            var dScene = createDialogueScene(dData1);
+            debugger;
+            playScene(60, controls, canvas, dScene);
+        }
+        var scene = createInfantryScene(data);
+        playScene(60, controls, canvas, scene);
+    };
+    var dScene = createDialogueScene(dData1);
+    playScene(60, controls, canvas, dScene);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // AI
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function createRetardBot(target, me, interval, aggroOrFlee) {
-
-    var update = function (controller) {
-        me.firing = true;
-        me.aimX = target.x - me.x;
-        me.aimY = target.y - me.y;
-        me.vertical = aggroOrFlee ? 1 : -1;
-    }
-
-    return { func: update, interval: interval };
-}
-
-function createDuelBot(target, me, interval) {
-    
-    var dotToDodge = null;
-    var update = function (controller) {
-
-        me.firing = true;
-
-        var gap = 3;
-        var newX = me.x - gap;
-        var newY = me.y - gap;
-        var newX2 = me.x + me.width + gap;
-        var newY2 = me.y + me.height + gap;
-
-        if (dotToDodge != null) {
-            var dodged = (function () { 
-                var d = Helpers.timeToHitRect(dotToDodge.x, dotToDodge.y, dotToDodge.vx, dotToDodge.vy, 
-                    newX, newY, newX2, newY2, me.vx, me.vy);
-                return d == false;
-            })();
-            if (!dodged) {
-                me.aimX = -dotToDodge.vx;
-                me.aimY = -dotToDodge.vy;
+function createStrafingBot(target, me, interval, strafeTicks, aimbot) {
+    var ticksLeft = 0;
+    return { 
+        off: false,
+        interval: interval,
+        func: function (controller) {
+            if (this.off) {
+                me.horizontal = 0;
                 return;
             }
-        }
-
-        dotToDodge = null;
-        var lowestTime = null;
-        var lowestDot = null;
-        controller.grid.enumerateDots(function (dot) {
-            if (dot.owner == me) return false;
-            var d = Helpers.timeToHitRect(dot.x, dot.y, dot.vx, dot.vy, 
-                newX, newY, newX2, newY2, me.vx, me.vy);
-            if (d != false) {
-                if (lowestTime === null || lowestTime > d) {
-                    lowestTime = d;
-                    lowestDot = dot;
-                }
+            ticksLeft -= interval;
+            if (ticksLeft < 0)
+                ticksLeft = 0;
+            if (me.horizontal == 0) {
+                me.horizontal = 1;
+            } else if (ticksLeft == 0) {
+                me.horizontal *= -1;
+                ticksLeft = strafeTicks;
             }
-            return false;
-        });
-
-        if (lowestTime != null) {
-            if (me.horizontal == 0) me.horizontal = Math.random() < 0.5 ? -1 : 1;
-            else me.horizontal *= -1;
-            me.aimX = -lowestDot.vx;
-            me.aimY = -lowestDot.vy;
-            dotToDodge = lowestDot;
-        } else {
-            var aim = Helpers.aimbot(target.x + target.radius, target.y + target.radius,
-                me.x + me.radius, me.y + me.radius, target.vx, target.vy, me.weapon.speed);
+            if (aimbot) {
+                var aim = Helpers.aimbot(target.x + target.radius, target.y + target.radius,
+                    me.x + me.radius, me.y + me.radius, target.vx, target.vy, me.weapon.speed);
+            } else {
+                var aim = { x: target.x - me.x, y: target.y - me.y };
+            }
             me.aimX = aim.x;
             me.aimY = aim.y;
         }
-    }
+    };
+}
+
+function createDuelBot(target, me, interval, aimbot) {
+    var dotToDodge = null;
+    return {
+        off: false,
+        interval: interval,
+        func: function (controller) {
+
+            if (this.off) {
+                me.horizontal = 0;
+                return;
+            }
+
+            var gap = 3;
+            var newX = me.x - gap;
+            var newY = me.y - gap;
+            var newX2 = me.x + me.width + gap;
+            var newY2 = me.y + me.height + gap;
+
+            if (dotToDodge != null) {
+                var dodged = (function () { 
+                    var d = Helpers.timeToHitRect(dotToDodge.x, dotToDodge.y, dotToDodge.vx, dotToDodge.vy, 
+                        newX, newY, newX2, newY2, me.vx, me.vy);
+                    return d == false;
+                })();
+                if (!dodged) {
+                    me.aimX = -dotToDodge.vx;
+                    me.aimY = -dotToDodge.vy;
+                    return;
+                }
+            }
+
+            dotToDodge = null;
+            var lowestTime = null;
+            var lowestDot = null;
+            controller.grid.enumerateDots(function (dot) {
+                if (dot.owner == me) return false;
+                var d = Helpers.timeToHitRect(dot.x, dot.y, dot.vx, dot.vy, 
+                    newX, newY, newX2, newY2, me.vx, me.vy);
+                if (d != false) {
+                    if (lowestTime === null || lowestTime > d) {
+                        lowestTime = d;
+                        lowestDot = dot;
+                    }
+                }
+                return false;
+            });
+
+            if (lowestTime != null) {
+                if (me.horizontal == 0) me.horizontal = Math.random() < 0.5 ? -1 : 1;
+                else me.horizontal *= -1;
+                me.aimX = -lowestDot.vx;
+                me.aimY = -lowestDot.vy;
+                dotToDodge = lowestDot;
+            } else {
+                if (aimbot) {
+                    var aim = Helpers.aimbot(target.x + target.radius, target.y + target.radius,
+                        me.x + me.radius, me.y + me.radius, target.vx, target.vy, me.weapon.speed);
+                } else {
+                    var aim = { x: target.x - me.x, y: target.y - me.y };
+                }
+                me.aimX = aim.x;
+                me.aimY = aim.y;
+            }
+        }
+    };
 
     return { func: update, interval: interval };
 }
@@ -128,7 +185,7 @@ function createDuelBot(target, me, interval) {
 // Trash Engine
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function Data() {
+function InfantrySceneData() {
     this.blockWidth = 5;
     this.blockHeight = 5;
     this.blockLength = 50;
@@ -200,13 +257,13 @@ function Thing(x, y, solid) {
     this.y = y;
     this.solid = solid;
     this.characterFlag = false;
+    this.notSolidFlag = false;
     this.tileIndex = -1;
     this.tileSheets = [];
 }
 
-function Tile(blockX, blockY) {
-    this.x = blockX;
-    this.y = blockY;
+function Tile(blockRects) {
+    this.blockRects = blockRects;
     this.tileIndex = -1;
     this.tileSheets = [];
 }
@@ -279,6 +336,9 @@ function createInfantryScene(data) {
         grid: new Grid(data.blockWidth, data.blockHeight, data.blockLength), 
         dialogueText: '',
         dialogueRemaining: 0,
+        fadeRemaining: 2000,
+        fadeStart: 2000,
+        fadeDarkerElseLighter: false,
         finished: false
     };
 
@@ -289,11 +349,18 @@ function createInfantryScene(data) {
             controller.grid.registerRect(data.things[i]);
         }
         for (var i = 0; i < data.tiles.length; ++i) {
-            controller.grid.registerTile(data.tiles[i]);
+            for (var j = 0; j < data.tiles[i].blockRects.length; ++j) {
+                var rect = data.tiles[i].blockRects[j];
+                for (var x = rect.x1; x <= rect.x2; ++x) {
+                    for (var y = rect.y1; y <= rect.y2; ++y) {
+                        controller.grid.registerTile(x, y, data.tiles[i]);
+                    }
+                }
+            }
         }
     })();
 
-    var begin = function () {
+    var begin = function (context) {
         data.onBegin(controller);
         for (var i = 0; i < data.backgroundProcesses.length; ++i) {
             (function () {
@@ -307,14 +374,20 @@ function createInfantryScene(data) {
 
     var draw = function (context, width, height) {
 
-        if (controller.dialogueRemaining > 0) {
-            Draw.drawRect(context, 0, height * 0.8 - 10, width, 40, '#222222');
-            Draw.drawRectBorder(context, 0, height * 0.8 - 10, width, 40, 'black', 2);
-            Draw.drawText(context, width / 2 - controller.dialogueText.length * 4.9, height * 0.8 + 15, controller.dialogueText, 'white', 16);
-            return;
+        if (controller.fadeRemaining > 0) {
+            context.globalAlpha = 1;
         }
 
         Draw.drawRect(context, 0, 0, width, height, data.outOfMapColor);
+
+        if (controller.fadeRemaining > 0) {
+            if (controller.fadeDarkerElseLighter)
+                context.globalAlpha = controller.fadeRemaining / controller.fadeStart;
+            else
+                context.globalAlpha = 1 - controller.fadeRemaining / controller.fadeStart;
+        } else {
+            context.globalAlpha = controller.fadeDarkerElseLighter ? 0 : 1;
+        }
 
         if (data.player) {
             var x = data.player.x + data.player.radius;
@@ -339,10 +412,23 @@ function createInfantryScene(data) {
         Draw.drawRect(context, bgX1, bgY1, bgX2, bgY2, data.floorColor);
 
         controller.grid.loopPixels(x1, y1, x1 + width - 1, y1 + height - 1, function (b, i, j) {
+        
+            if (b.tile) {
+                var theActualTile = b.tile.tileSheets[b.tile.tileIndex];
+                var tileX = i * controller.grid.blockLength - x1;
+                var tileY = j * controller.grid.blockLength - y1;
+                if (theActualTile) {
+                    theActualTile.draw(context, tileX, tileY, controller.grid.blockLength, controller.grid.blockLength);
+                } else {
+                    Draw.drawRect(context, tileX, tileY, controller.grid.blockLength, controller.grid.blockLength, '#242424');
+                }
+            }
+
             for (key in b.dots) {
                 var dot = b.dots[key];
                 Draw.drawCircle(context, dot.x - x1, dot.y - y1, 2, dot.color);
             }
+
             for (key in b.rects) {
                 var rect = b.rects[key];
                 var rectX = rect.x - x1;
@@ -372,13 +458,28 @@ function createInfantryScene(data) {
                         Draw.drawRect(context, rectX, rectY, rect.width, rect.height, 'white');
                 }
             }
-            if (b.tile) 
-                b.tile.draw(context, b.tile.x - x1, b.tile.y - y1, controller.grid.blockWidth, controller.grid.blockLength);
+
             return false;
         });
+       
+        var savedAlpha = context.globalAlpha;
+        context.globalAlpha = 1;
+        if (controller.dialogueRemaining > 0) {
+            Draw.drawRect(context, 0, height * 0.8 - 10, width, 40, '#222222');
+            Draw.drawRectBorder(context, 0, height * 0.8 - 10, width, 40, 'black', 2);
+            Draw.drawText(context, width / 2 - controller.dialogueText.length * 4.9, height * 0.8 + 15, controller.dialogueText, 'white', 16);
+        }
+        context.globalAlpha = savedAlpha;
     };
 
     var update = function (controls, diff) { 
+
+        if (controller.fadeRemaining > 0) {
+            controller.fadeRemaining -= diff;
+            if (controller.fadeRemaining < 0) {
+                controller.fadeRemaining = 0;
+            }
+        }
 
         if (controller.dialogueRemaining > 0) {
             controller.dialogueRemaining -= diff;
@@ -386,6 +487,9 @@ function createInfantryScene(data) {
         } else if (controller.dialogueRemaining < 0) {
             controller.dialogueRemaining = 0;
         }
+        
+        if (data.onUpdate)
+            data.onUpdate(controller);
 
         if (data.player && data.enableInteraction) {
             data.player.vertical = controls.vertical;
@@ -477,8 +581,12 @@ function createInfantryScene(data) {
                     controller.grid.loopRectCollideWithRect(character, function (collidedRect) {
                         if (collidedRect.characterFlag) return false;
                         data.onCharacterThingCollision(controller, character, collidedRect);
-                        collision = true;
-                        return true; 
+                        if (collidedRect.notSolidFlag) {
+                            return false;
+                        } else {
+                            collision = true;
+                            return true; 
+                        }
                     });
                     if (collision) return true;
                     return false;
@@ -523,9 +631,6 @@ function createInfantryScene(data) {
             })();
         });
 
-        if (data.onUpdate)
-            data.onUpdate(controller);
-
         if (controller.finished) {
             (function () {
                 for (var i = 0; i < processes.length; ++i)
@@ -541,11 +646,48 @@ function createInfantryScene(data) {
     return { begin: begin, draw: draw, update: update };
 }
 
+function DialogueSceneData() {
+    this.lines = [];
+    this.percentageSpeed = 0.0001;
+    this.lifetime = 8000;
+    this.fontSize = 14;
+    this.fontColor = 'white';
+    this.onFinish = function () {};
+}
+
+function createDialogueScene(data) {
+
+    var y = 1;
+    var lifetime = data.lifetime;
+
+    var update = function (controls, diff) {
+        y -= diff * data.percentageSpeed;
+        lifetime -= diff;
+        if (lifetime <= 0) {
+            data.onFinish();
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    var draw = function (context, width, height) {
+        context.globalAlpha = 1;
+        Draw.drawRect(context, 0, 0, canvas.width, canvas.height, 'black');
+        for (var i = 0; i < data.lines.length; ++i) {
+            Draw.drawText(context, 10, y * canvas.height + i * 25, data.lines[i], data.fontColor, data.fontSize);
+        }
+    };
+
+    return { begin: null, draw: draw, update: update };
+}
+
 function playScene(fps, controls, canvas, scene) {
     var delay = 1000 / fps;
     var lastFrame = null;
     var context = canvas.getContext('2d');
-    scene.begin();
+    if (scene.begin) 
+        scene.begin(context);
     var id = setInterval(function () {
         var now = Date.now()
         var diff = lastFrame === null ? delay : now - lastFrame;
@@ -795,6 +937,7 @@ function Grid(blockWidth, blockHeight, blockLength) {
 
     this.blockWidth = blockWidth;
     this.blockHeight = blockHeight;
+    this.blockLength = blockLength;
 
     this.isRectOutside = function (rect) {
         return rect.x < 0 || rect.y < 0 ||
@@ -922,12 +1065,12 @@ function Grid(blockWidth, blockHeight, blockLength) {
         delete all.dots[dot.id];
     };
     
-    this.registerTile = function (tile) {
-        this.blocks[tile.x][tile.y].tile = tile;
+    this.registerTile = function (x, y, tile) {
+        blocks[x][y].tile = tile;
     };
 
-    this.unregisterTile = function (tile) {
-        this.blocks[tle.x][tile.y].tile = null;
+    this.unregisterTile = function (x, y) {
+        blocks[x][y].tile = null;
     };
 
     function Block() {
