@@ -1,3 +1,1 @@
-Ghost1001
-=========
-Basic offline Infantry style clone with unbeatable AI included
+Basic Infantry offline clone - Make dialogue/fighting scenes with multiple unbeatable AI, maps and some animations
