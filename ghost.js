@@ -98,8 +98,6 @@ function createDuelBot(target, me, interval, aimbot) {
             }
         }
     };
-
-    return { func: update, interval: interval };
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,8 +105,8 @@ function createDuelBot(target, me, interval, aimbot) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function InfantrySceneData() {
-    this.blockWidth = 5;
-    this.blockHeight = 5;
+    this.blockWidth = 10;
+    this.blockHeight = 10;
     this.blockLength = 50;
     this.things = [];
     this.tiles = [];
@@ -176,9 +174,10 @@ function AnimatedTileSheet(relativePath, fileWidth, fileHeight, animateWidth, an
 function Thing(x, y, solid) {
     this.x = x;
     this.y = y;
-    this.solid = solid;
+    this.width = 50;
+    this.height = 50;
     this.characterFlag = false;
-    this.notSolidFlag = false;
+    this.notSolidFlag = !solid;
     this.tileIndex = -1;
     this.tileSheets = [];
 }
@@ -348,11 +347,6 @@ function createInfantryScene(data) {
                 }
             }
 
-            for (key in b.dots) {
-                var dot = b.dots[key];
-                Draw.drawCircle(context, dot.x - x1, dot.y - y1, 2, dot.color);
-            }
-
             for (key in b.rects) {
                 var rect = b.rects[key];
                 var rectX = rect.x - x1;
@@ -381,6 +375,11 @@ function createInfantryScene(data) {
                     else
                         Draw.drawRect(context, rectX, rectY, rect.width, rect.height, 'white');
                 }
+            }
+
+            for (key in b.dots) {
+                var dot = b.dots[key];
+                Draw.drawCircle(context, dot.x - x1, dot.y - y1, 2, dot.color);
             }
 
             return false;

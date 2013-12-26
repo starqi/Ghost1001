@@ -1,1 +1,1 @@
-Basic Infantry offline clone - Make dialogue/fighting scenes with multiple unbeatable AI, maps and some animations
+Stupid basic Infantry imitation - Aiming/dodging AI, simple map, tiles, objects, animations, sound, scrolling dialogue, a bad multiplayer example
