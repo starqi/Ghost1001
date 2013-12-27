@@ -119,8 +119,8 @@ function go() {
     // Tiles
     var player1 = new AnimatedTileSheet('../Example_Resources/player1.png', 148, 97, 2, 1);
     player1.autoTick = true;
-    var floor1 = new AnimatedTileSheet('floor1.jpeg', 75, 68, 1, 1);
-    var floor2 = new AnimatedTileSheet('floor2.png', 346, 196, 1, 1);
+    var floor1 = new AnimatedTileSheet('../Example_Resources/floor1.jpeg', 75, 68, 1, 1);
+    var floor2 = new AnimatedTileSheet('../Example_Resources/floor2.png', 346, 196, 1, 1);
 
     // Characters
     var weapon = new Weapon();
@@ -157,7 +157,7 @@ function go() {
     data.onCharacterBulletHit = function (controller, character, bullet) {
         Sound.play("ding");
         character.hp -= bullet.damage;
-        if (character.hp < 0) {
+        if (character.hp <= 0) {
             character.hp = 0;
             if (character == globals.me) {
                 globals.enemyKills++;
