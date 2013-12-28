@@ -4,9 +4,8 @@ function init() {
     var dData1 = new DialogueSceneData();
     Sound.load("ding", "../Example_Resources/ding.mp3");
     dData1.percentageSpeed = 0.0002;
-    dData1.lifetime = 2500;
-    dData1.lines.push("Face the best dueller in history?");
-    dData1.lines.push("First to 10 kills wins");
+    dData1.lifetime = 3000;
+    dData1.lines.push("Duel Bot v0.01");
     dData1.onFinish = function () {
         var weapon = new Weapon();
         weapon.damage = 75;
@@ -22,7 +21,7 @@ function init() {
         me.x = 50;
         me.y = 50;
         var computer = new Character("b", weapon, 15);
-        computer.name = "Best Dueller";
+        computer.name = "Duel Bot";
         computer.tileSheets = [playerT];
         computer.tileIndex = 0;
         computer.x = 400;
@@ -48,7 +47,7 @@ function init() {
                 character.hp = 0;
                 if (character == me) computerKills++;
                 else if (character == computer) meKills++;
-                controller.dialogueText = "Me: " + meKills + " - Best Dueller: " + computerKills
+                controller.dialogueText = "Me: " + meKills + " - Duel Bot: " + computerKills
                 controller.dialogueRemaining = 1500;
                 me.hp = me.maxHp;
                 computer.hp = computer.maxHp;
@@ -90,12 +89,10 @@ function init() {
             var dData1 = new DialogueSceneData();
             dData1.percentageSpeed = 0.0002;
             dData1.lifetime = 3000;
-            if (meKills >= computerKills) {
-                dData1.lines.push("Do you honestly think");
-                dData1.lines.push("you can defeat the best dueller");
-                dData1.lines.push("in history? You're worse than TheDevice");
+            if (meKills > computerKills) {
+                dData1.lines.push("WIN");
             } else {
-                dData1.lines.push("Had to hack to win, nerd");
+                dData1.lines.push("LOSE");
             }
             var dScene = createDialogueScene(dData1);
             playScene(60, controls, canvas, dScene);
