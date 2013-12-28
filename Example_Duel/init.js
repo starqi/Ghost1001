@@ -5,8 +5,8 @@ function init() {
     Sound.load("ding", "../Example_Resources/ding.mp3");
     dData1.percentageSpeed = 0.0002;
     dData1.lifetime = 2500;
-    dData1.lines.push("The best Infantry dueller in history");
-    dData1.lines.push("First to 25 kills wins");
+    dData1.lines.push("Face the best dueller in history?");
+    dData1.lines.push("First to 10 kills wins");
     dData1.onFinish = function () {
         var weapon = new Weapon();
         weapon.damage = 75;
@@ -62,7 +62,7 @@ function init() {
             }
         };
         data.onUpdate = function (controller) {
-            if (meKills >= 25 || computerKills >= 25) {
+            if (meKills >= 10 || computerKills >= 10) {
                 controller.finished = true;
             }
         };
