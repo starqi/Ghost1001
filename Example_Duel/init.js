@@ -46,9 +46,9 @@ function init() {
             character.hp -= bullet.damage;
             if (character.hp <= 0) {
                 character.hp = 0;
-                if (character == me) meKills++;
-                else if (character == computer) computerKills++;
-                controller.dialogueText = meKills + "-" + computerKills
+                if (character == me) computerKills++;
+                else if (character == computer) meKills++;
+                controller.dialogueText = "Me: " + meKills + " - Best Dueller: " + computerKills
                 controller.dialogueRemaining = 1500;
                 me.hp = me.maxHp;
                 computer.hp = computer.maxHp;
@@ -81,7 +81,7 @@ function init() {
         tile2.tileX = tile2.tileY = 0;
         tile2.tileSheet = floor1;
         data.tiles.push(tile2);
-        data.backgroundProcesses.push(createDuelBot(me, computer, 50, true));
+        data.backgroundProcesses.push(createDuelBot(me, computer, 40, true));
         data.onBegin = function (controller) {
             controller.dialogueText = "READY?";
             controller.dialogueRemaining = 1000;
@@ -93,7 +93,7 @@ function init() {
             if (meKills >= computerKills) {
                 dData1.lines.push("Do you honestly think");
                 dData1.lines.push("you can defeat the best dueller");
-                dData1.lines.push("in history?");
+                dData1.lines.push("in history? You're worse than TheDevice");
             } else {
                 dData1.lines.push("Had to hack to win, nerd");
             }

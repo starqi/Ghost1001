@@ -1,5 +1,5 @@
 var WebSocketServer = require("ws").Server;
-var wss = new WebSocketServer({port: 1337});
+var wss = new WebSocketServer({port: 8888});
 
 var pa = false, pb = false;
 
