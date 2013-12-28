@@ -115,8 +115,8 @@ function InfantrySceneData() {
     this.enableInteraction = true;
     this.floorColor = '#223322';
     this.outOfMapColor = 'black';
-    this.bounceMultiplier = 0.8;
-    this.frictionAccelMag = 0.006;
+    this.bounceMultiplier = 0;
+    this.frictionAccelMag = 1; //0.006;
     this.onCharacterBulletHit = function (controller, character, bullet) {};
     this.onCharacterThingCollision = function (controller, character, thing) {};
     this.onUpdate = function (controller) {};
@@ -195,7 +195,7 @@ function Character(id, weapon, radius) {
     this.name = 'Character';
     this.id = id;
     this.maxSpeed = 0.0875;
-    this.movementAccelMag = 0.0035;
+    this.movementAccelMag = 1; //0.0035;
     this.x = 0;
     this.y = 0;
     this.ax = 0;
