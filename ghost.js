@@ -574,7 +574,7 @@ function DialogueSceneData() {
     this.percentageSpeed = 0.0001;
     this.lifetime = 8000;
     this.fontSize = 14;
-    this.fontColor = '#888888';
+    this.fontColor = '#00ffff';
     this.onFinish = function () {};
 }
 

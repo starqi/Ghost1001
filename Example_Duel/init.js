@@ -80,7 +80,7 @@ function init() {
         tile2.tileX = tile2.tileY = 0;
         tile2.tileSheet = floor1;
         data.tiles.push(tile2);
-        data.backgroundProcesses.push(createDuelBot(me, computer, 40, true));
+        data.backgroundProcesses.push(createDuelBot(me, computer, 1, true));
         data.onBegin = function (controller) {
             controller.dialogueText = "READY?";
             controller.dialogueRemaining = 1000;
