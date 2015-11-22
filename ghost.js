@@ -2,24 +2,25 @@
 // AI
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function createStrafingBot(target, me, interval, strafeTicks, aimbot) {
+function createStrafingBot(target, me, interval, strafeTicks, aimbot, angleOffset) {
     var ticksLeft = 0;
     return { 
         off: false,
         interval: interval,
         func: function (controller) {
+            if (me.off) return;
             if (this.off) {
                 me.horizontal = 0;
                 return;
             }
-            ticksLeft -= interval;
+            ticksLeft -= 1;
             if (ticksLeft < 0)
                 ticksLeft = 0;
             if (me.horizontal == 0) {
                 me.horizontal = 1;
             } else if (ticksLeft == 0) {
                 me.horizontal *= -1;
-                ticksLeft = strafeTicks;
+                ticksLeft = Math.max(strafeTicks * Math.random(), strafeTicks / 2);
             }
             if (aimbot) {
                 var aim = Helpers.aimbot(target.x + target.radius, target.y + target.radius,
@@ -27,25 +28,38 @@ function createStrafingBot(target, me, interval, strafeTicks, aimbot) {
             } else {
                 var aim = { x: target.x - me.x, y: target.y - me.y };
             }
+            var angle = Math.random() * angleOffset - (angleOffset / 2);
+            aim.x = Math.cos(angle) * aim.x - Math.sin(angle) * aim.y;
+            aim.y = Math.sin(angle) * aim.x + Math.cos(angle) * aim.y;
             me.aimX = aim.x;
             me.aimY = aim.y;
         }
     };
 }
 
-function createDuelBot(target, me, interval, aimbot) {
+// Approximates dodging along a LINE, will run into bullets when it changes motion along a LINE
+// Need ML for specific cases...
+function createDuelBot(target, me, interval, fps, shootDist) {
     var dotToDodge = null;
     return {
         off: false,
         interval: interval,
         func: function (controller) {
-
-            if (this.off) {
-                me.horizontal = 0;
-                return;
+            if (me.off) return;
+            var fightDist = Helpers.magnitude(target.x - me.x, target.y - me.y);
+            if (fightDist <= shootDist * 0.7) {
+                me.vertical = 0;
+            } else if (dotToDodge == null) {
+                me.vertical = 1;
+            } 
+            if (fightDist <= shootDist) {
+                me.firing = true;
+            } else {
+                me.firing = false;
             }
 
-            var gap = 3;
+            var gap = 0;
+            var gap2 = 0;
             var newX = me.x - gap;
             var newY = me.y - gap;
             var newX2 = me.x + me.width + gap;
@@ -53,8 +67,30 @@ function createDuelBot(target, me, interval, aimbot) {
 
             if (dotToDodge != null) {
                 var dodged = (function () { 
+                    var strafeX = -dotToDodge.vx;
+                    var strafeY = -dotToDodge.vy;
+                    var mag = Helpers.magnitude(strafeX, strafeY);
+                    if (mag == 0) {
+                        strafeX = 0;
+                        strafeY = 0;
+                    } else {
+                        strafeX /= mag;
+                        strafeY /= mag;
+                    }
+                    if (me.horizontal == 0) me.horizontal == 1;
+                    if (me.horizontal == 1) {
+                        var temp = strafeX;
+                        strafeX = strafeY;
+                        strafeY = -temp;
+                    } else if (me.horizontal == -1) {
+                        var temp = strafeX;
+                        strafeX = -strafeY;
+                        strafeY = temp;
+                    }
+                    strafeX *= me.maxSpeed;
+                    strafeY *= me.maxSpeed;
                     var d = Helpers.timeToHitRect(dotToDodge.x, dotToDodge.y, dotToDodge.vx, dotToDodge.vy, 
-                        newX, newY, newX2, newY2, me.vx, me.vy);
+                        newX, newY, newX2, newY2, strafeX, strafeY);
                     return d == false;
                 })();
                 if (!dodged) {
@@ -62,16 +98,41 @@ function createDuelBot(target, me, interval, aimbot) {
                     me.aimY = -dotToDodge.vy;
                     return;
                 }
+                dotToDodge.dodgedBy = me;
             }
 
             dotToDodge = null;
             var lowestTime = null;
             var lowestDot = null;
             controller.grid.enumerateDots(function (dot) {
-                if (dot.owner == me) return false;
+                if (dot.owner == me || dot.dodgedBy == me) return false;
+
+                    var strafeX = -dot.vx;
+                    var strafeY = -dot.vy;
+                    var mag = Helpers.magnitude(strafeX, strafeY);
+                    if (mag == 0) {
+                        strafeX = 0;
+                        strafeY = 0;
+                    } else {
+                        strafeX /= mag;
+                        strafeY /= mag;
+                    }
+                    if (me.horizontal == 0) me.horizontal == 1;
+                    if (me.horizontal == 1) {
+                        var temp = strafeX;
+                        strafeX = strafeY;
+                        strafeY = -temp;
+                    } else if (me.horizontal == -1) {
+                        var temp = strafeX;
+                        strafeX = -strafeY;
+                        strafeY = temp;
+                    }
+                    strafeX *= me.maxSpeed;
+                    strafeY *= me.maxSpeed;
+
                 var d = Helpers.timeToHitRect(dot.x, dot.y, dot.vx, dot.vy, 
-                    newX, newY, newX2, newY2, me.vx, me.vy);
-                if (d != false) {
+                    newX, newY, newX2, newY2, strafeX, strafeY);
+                if (d !== false) {
                     if (lowestTime === null || lowestTime > d) {
                         lowestTime = d;
                         lowestDot = dot;
@@ -81,20 +142,31 @@ function createDuelBot(target, me, interval, aimbot) {
             });
 
             if (lowestTime != null) {
-                if (me.horizontal == 0) me.horizontal = Math.random() < 0.5 ? -1 : 1;
-                else me.horizontal *= -1;
+                if (me.horizontal == 0)
+                    me.horizontal = Math.random() < 0.5 ? -1 : 1;
+                else 
+                    me.horizontal *= -1;
                 me.aimX = -lowestDot.vx;
                 me.aimY = -lowestDot.vy;
                 dotToDodge = lowestDot;
+                vertical = 0;
             } else {
-                if (aimbot) {
-                    var aim = Helpers.aimbot(target.x + target.radius, target.y + target.radius,
-                        me.x + me.radius, me.y + me.radius, target.vx, target.vy, me.weapon.speed);
+                var aim = Helpers.aimbot(target.x + target.radius, target.y + target.radius,
+                    me.x + me.radius, me.y + me.radius, target.vx, target.vy, me.weapon.speed);
+                var timeToHit = Helpers.magnitude(target.x - me.x, target.y - me.y) 
+                    / me.weapon.speed;
+                var p2 = Helpers.posOnReverse(target, timeToHit, fps);
+                if (p2 === false) {
+                    p2 = [aim.x, aim.y];
                 } else {
-                    var aim = { x: target.x - me.x, y: target.y - me.y };
+                    p2[0] -= me.x;
+                    p2[1] -= me.y;
                 }
-                me.aimX = aim.x;
-                me.aimY = aim.y;
+                var rand = Math.random();
+                if (rand >= 0.5) 
+                    rand = 1.0;
+                me.aimX = rand * (aim.x - p2[0]) + p2[0];
+                me.aimY = rand * (aim.y - p2[1]) + p2[1];
             }
         }
     };
@@ -115,7 +187,7 @@ function InfantrySceneData() {
     this.enableInteraction = true;
     this.floorColor = '#223322';
     this.outOfMapColor = 'black';
-    this.bounceMultiplier = 0;
+    this.bounceMultiplier = 0.95;
     this.frictionAccelMag = 0.006;
     this.onCharacterBulletHit = function (controller, character, bullet) {};
     this.onCharacterThingCollision = function (controller, character, thing) {};
@@ -191,11 +263,17 @@ function Tile(blockRects) {
 
 function Character(id, weapon, radius) {
 
+    //this.bounceMultiplier = 1;
+    //this.autoVBounce = false;
+    this.disableBackpeddle = true;
+    this.autoHBounce = true;
+    this.wrapMap = false;
+    this.off = false;
     this.maxHp = this.hp = 1000;
     this.name = 'Character';
     this.id = id;
     this.maxSpeed = 0.0875;
-    this.movementAccelMag = 0.0035;
+    this.movementAccelMag = 0.004;
     this.x = 0;
     this.y = 0;
     this.ax = 0;
@@ -416,6 +494,10 @@ function createInfantryScene(data) {
 
         if (data.player && data.enableInteraction) {
             data.player.vertical = controls.vertical;
+            if (data.player.disableBackpeddle) {
+                if (data.player.vertical == -1) 
+                    data.player.vertical = 0;
+            }
             data.player.horizontal = controls.horizontal;
             data.player.firing = controls.mouse;
             data.player.aimX = controls.aimX;
@@ -433,10 +515,10 @@ function createInfantryScene(data) {
             bullet.y += bullet.vy * diff;
             controller.grid.addDot(bullet);
             controller.grid.loopDotCollideWithRect(bullet, function (character) {
-                if (character.characterFlag) {
+                if (character.characterFlag && !character.off) {
                     if (bullet.owner != character) {
-                        data.onCharacterBulletHit(controller, character, bullet);
-                        controller.grid.unregisterDot(bullet);
+                        if (!data.onCharacterBulletHit(controller, character, bullet))
+                            controller.grid.unregisterDot(bullet);
                         return true;
                     }
                 }
@@ -455,7 +537,7 @@ function createInfantryScene(data) {
                 }
             }
 
-            if (!character.characterFlag) return;
+            if (!character.characterFlag || character.off) return;
 
             var addAccel = function (a, b, c, d, vertical) {
                 var direction = vertical ? character.horizontal : character.vertical;
@@ -517,22 +599,50 @@ function createInfantryScene(data) {
                 var mx = character.vx * diff;
                 var my = character.vy * diff;
                 controller.grid.removeRect(character);
-                character.x += mx;
-                var collisionX = testCollision();
-                character.x -= mx;
-                character.y += my;
-                var collisionY = testCollision();
-                character.y -= my;
-                if (collisionX) {
-                    character.vx *= -data.bounceMultiplier;
-                } else {
+
+                if (character.wrapMap) {
+                    if (character.x + character.width > controller.grid.pixelWidth)
+                        character.x = 0;
+                    else if (character.x < 0)
+                        character.x = controller.grid.pixelWidth - character.width;
+                    
+                    if (character.y + character.height > controller.grid.pixelHeight) 
+                        character.y = 0;
+                    else if (character.y < 0)
+                        character.y = controller.grid.pixelHeight - character.height;
+
                     character.x += mx;
-                }
-                if (collisionY) {
-                    character.vy *= -data.bounceMultiplier;
-                } else {
                     character.y += my;
+                } else {
+
+                    character.x += mx;
+                    var collisionX = testCollision();
+                    character.x -= mx;
+                    character.y += my;
+                    var collisionY = testCollision();
+                    character.y -= my;
+                    if (collisionX) {
+                        if (character.bounceMultiplier !== undefined)
+                            character.vx *= -character.bounceMultiplier;
+                        else
+                            character.vx *= -data.bounceMultiplier;
+                        if (character.autoVBounce)
+                            character.vertical *= -1;
+                    } else {
+                        character.x += mx;
+                    }
+                    if (collisionY) {
+                        if (character.bounceMultiplier !== undefined)
+                            character.vy *= -character.bounceMultiplier;
+                        else
+                            character.vy *= -data.bounceMultiplier;
+                        if (character.autoHBounce)
+                            character.horizontal *= -1;
+                    } else {
+                        character.y += my;
+                    }
                 }
+
                 controller.grid.addRect(character);
             })();
             
@@ -574,7 +684,7 @@ function DialogueSceneData() {
     this.percentageSpeed = 0.0001;
     this.lifetime = 8000;
     this.fontSize = 14;
-    this.fontColor = '#00ffff';
+    this.fontColor = "#eeffff"
     this.onFinish = function () {};
 }
 
@@ -807,6 +917,32 @@ Helpers = {
         else if (xt2 >= yt1 && xt2 <= yt2) return yt1;
         else if (xt1 < yt1 && xt2 > yt2) return yt1;
         else return false;
+    },
+
+    posOnReverse: function (me, d, fps) {
+        var tick = 1000 / fps;
+        var currentSpeed = this.magnitude(me.vx, me.vy);
+        var timeToZero = currentSpeed / me.movementAccelMag * tick;
+        var timeToMax = me.maxSpeed / me.movementAccelMag * tick;
+        var averageSpeed = (currentSpeed + me.maxSpeed) / 4;
+        var s = timeToZero + timeToMax;
+        var diff = d - s;
+        if (currentSpeed === 0) {
+            return false;
+        } else {
+            var nmeVx = me.vx / currentSpeed;
+            var nmeVy = me.vy / currentSpeed;
+        }
+        if (diff < 0) {
+            var p2x = averageSpeed * -nmeVx * d + me.x;
+            var p2y = averageSpeed * -nmeVy * d + me.y;
+        } else {
+            var p2x = averageSpeed * -nmeVx * s + me.x;
+            var p2y = averageSpeed * -nmeVy * s + me.y;
+            p2x -= me.maxSpeed * nmeVx * diff;
+            p2y -= me.maxSpeed * nmeVy * diff;
+        }
+        return [p2x, p2y];
     }
 }
 
@@ -814,16 +950,28 @@ Sound = {
 
     loaded: {},
 
-    load: function (name, path, onFinish) {
-        var audio = new Audio();
-        audio.src = path;
-        audio.preload = 'auto';
-        audio.addEventListener('canplaythrough', onFinish);
-        this.loaded[name] = audio;
+    load: function (name, path, times, onFinish) {
+        if (times === undefined) 
+            times = 1;
+        this.loaded[name] = {
+            index: 0,
+            array: []
+        };
+        for (var i = 0; i < times; ++i) {
+            var audio = new Audio();
+            audio.src = path;
+            audio.preload = 'auto';
+            if (onFinish !== undefined)
+                audio.addEventListener('canplaythrough', onFinish);
+            this.loaded[name].array.push(audio);
+        }
     },
 
     play: function (name) {
-        this.loaded[name].play();
+        var a = this.loaded[name];
+        a.array[a.index].play();
+        a.index++;
+        a.index %= a.array.length;
     },
 
     playAndFade: function (name, duration, fadeDuration, interval) {

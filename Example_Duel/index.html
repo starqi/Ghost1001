@@ -2,11 +2,51 @@
     <head>
         <style>
             #canvas { background: black; }
+            body { background: #090909; }
+            .yes { color: #00ff00; font-family: courier; background: #090909 }
+            #duel_button { color: white; font-weight: bold; width:250px; background: #339933;
+              margin-top: 7px; border-style: solid; border-width: 1px; } 
+            #opponent { width: 250px; color: #ff8181; }
+            #portrait { margin-top: 5px; margin-bottom: 5px; }
+            #picko { font-size: 10px; color: #009900; }
         </style>
         <script src="../ghost.js"></script>
         <script src="init.js"></script>
     <head>
-    <body onload="init()">
-        <canvas id="canvas" width="640" height="480"></canvas>
+    <body onload="changePic();">
+        <div id="pre" class="yes">
+            INFANTRY LEGENDS BOT-IFIED
+        </div>
+        <div>
+            <img id="portrait" width="250px" height="150px" >
+        </div>
+        <div id="picko" class="yes">
+            Click below to pick your opponent
+        </div>
+        <div>
+            <select id="opponent" class="yes" onchange="changePic();">
+                <option disabled>--- SPECTATE --- </option>
+                <option value="nvb">Ninj vs Boog</option>
+                <option disabled>--- GRANDMASTERS ---</option>
+                <option value="boog">Boog </option>
+                <option value="ikaze">1 &lt; a z e</option>
+                <option value="ninj">Ninj</option>
+                <option disabled>--- MASTERS --- </option>
+                <option value="nos" selected>Noskeeper</option>
+                <option value="pigm">pigm the indestructible</option>
+                <option disabled>--- PLEBS ---</option>
+                <option value="ayb">ayb</option>
+                <option value="plane">ayb's airplane</option>
+                <option value="aybc">Statutory Apes</option> 
+                <option value="johny">johnyric0</option>
+                <option value="navck">navck the dt spam</option>
+            </select>
+        </div>
+        <div>
+            <button id="duel_button" onclick="init();">Duel</button>
+        </div>
+        <div>
+            <canvas style="visibility:collapse;" id="canvas" width="500px" height="500px"></canvas>
+        </div>
     </body>
 </html>
