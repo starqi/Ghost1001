@@ -37,17 +37,57 @@ function createStrafingBot(target, me, interval, strafeTicks, aimbot, angleOffse
     };
 }
 
+var GAP = 2;
 // Approximates dodging along a LINE, will run into bullets when it changes motion along a LINE
 // Need ML for specific cases...
 function createDuelBot(target, me, interval, fps, shootDist) {
     var dotToDodge = null;
+
+    var isUnavoidable = function (strafe, dot, d) {
+        var p2 = Helpers.posOnReverse(me.x, me.y, strafe[0], strafe[1], me.movementAccelMag,
+            me.maxSpeed, d, fps);
+        var dx2 = dot.vx * d + dot.x;
+        var dy2 = dot.vy * d + dot.y;
+        var result = Helpers.dotRectCollision(dx2, dy2, 
+            p2[0] - GAP, p2[1] - GAP,
+            p2[0] + me.width + GAP, p2[1] + me.height + GAP);
+        //console.log(result);
+        return result;
+    };
+
+    var getStrafeDir = function (dot) {
+        var strafeX = -dot.vx;
+        var strafeY = -dot.vy;
+        var mag = Helpers.magnitude(strafeX, strafeY);
+        if (mag == 0) {
+            strafeX = 0;
+            strafeY = 0;
+        } else {
+            strafeX /= mag;
+            strafeY /= mag;
+        }
+        if (me.horizontal == 0) me.horizontal == 1;
+        if (me.horizontal == 1) {
+            var temp = strafeX;
+            strafeX = strafeY;
+            strafeY = -temp;
+        } else if (me.horizontal == -1) {
+            var temp = strafeX;
+            strafeX = -strafeY;
+            strafeY = temp;
+        }
+        strafeX *= me.maxSpeed;
+        strafeY *= me.maxSpeed;
+        return [strafeX, strafeY];
+    };
+
     return {
         off: false,
         interval: interval,
         func: function (controller) {
             if (me.off) return;
             var fightDist = Helpers.magnitude(target.x - me.x, target.y - me.y);
-            if (fightDist <= shootDist * 0.7) {
+            if (fightDist <= shootDist * 0.8) {
                 me.vertical = 0;
             } else if (dotToDodge == null) {
                 me.vertical = 1;
@@ -58,40 +98,20 @@ function createDuelBot(target, me, interval, fps, shootDist) {
                 me.firing = false;
             }
 
-            var gap = 0;
-            var gap2 = 0;
-            var newX = me.x - gap;
-            var newY = me.y - gap;
-            var newX2 = me.x + me.width + gap;
-            var newY2 = me.y + me.height + gap;
+            var newX = me.x - GAP;
+            var newY = me.y - GAP;
+            var newX2 = me.x + me.width + GAP;
+            var newY2 = me.y + me.height + GAP;
 
             if (dotToDodge != null) {
                 var dodged = (function () { 
-                    var strafeX = -dotToDodge.vx;
-                    var strafeY = -dotToDodge.vy;
-                    var mag = Helpers.magnitude(strafeX, strafeY);
-                    if (mag == 0) {
-                        strafeX = 0;
-                        strafeY = 0;
-                    } else {
-                        strafeX /= mag;
-                        strafeY /= mag;
-                    }
-                    if (me.horizontal == 0) me.horizontal == 1;
-                    if (me.horizontal == 1) {
-                        var temp = strafeX;
-                        strafeX = strafeY;
-                        strafeY = -temp;
-                    } else if (me.horizontal == -1) {
-                        var temp = strafeX;
-                        strafeX = -strafeY;
-                        strafeY = temp;
-                    }
-                    strafeX *= me.maxSpeed;
-                    strafeY *= me.maxSpeed;
+                    var strafe = getStrafeDir(dotToDodge);
                     var d = Helpers.timeToHitRect(dotToDodge.x, dotToDodge.y, dotToDodge.vx, dotToDodge.vy, 
-                        newX, newY, newX2, newY2, strafeX, strafeY);
-                    return d == false;
+                        newX, newY, newX2, newY2, strafe[0], strafe[1]);
+                    if (d === false)
+                        return true;
+                    else 
+                        return isUnavoidable(strafe, dotToDodge, d);
                 })();
                 if (!dodged) {
                     me.aimX = -dotToDodge.vx;
@@ -106,36 +126,15 @@ function createDuelBot(target, me, interval, fps, shootDist) {
             var lowestDot = null;
             controller.grid.enumerateDots(function (dot) {
                 if (dot.owner == me || dot.dodgedBy == me) return false;
-
-                    var strafeX = -dot.vx;
-                    var strafeY = -dot.vy;
-                    var mag = Helpers.magnitude(strafeX, strafeY);
-                    if (mag == 0) {
-                        strafeX = 0;
-                        strafeY = 0;
-                    } else {
-                        strafeX /= mag;
-                        strafeY /= mag;
-                    }
-                    if (me.horizontal == 0) me.horizontal == 1;
-                    if (me.horizontal == 1) {
-                        var temp = strafeX;
-                        strafeX = strafeY;
-                        strafeY = -temp;
-                    } else if (me.horizontal == -1) {
-                        var temp = strafeX;
-                        strafeX = -strafeY;
-                        strafeY = temp;
-                    }
-                    strafeX *= me.maxSpeed;
-                    strafeY *= me.maxSpeed;
-
+                var strafe = getStrafeDir(dot);
                 var d = Helpers.timeToHitRect(dot.x, dot.y, dot.vx, dot.vy, 
-                    newX, newY, newX2, newY2, strafeX, strafeY);
+                    newX, newY, newX2, newY2, strafe[0], strafe[1]);
                 if (d !== false) {
-                    if (lowestTime === null || lowestTime > d) {
-                        lowestTime = d;
-                        lowestDot = dot;
+                    if (!isUnavoidable(strafe, dot, d)) {
+                        if (lowestTime === null || lowestTime > d) {
+                            lowestTime = d;
+                            lowestDot = dot;
+                        }
                     }
                 }
                 return false;
@@ -155,13 +154,11 @@ function createDuelBot(target, me, interval, fps, shootDist) {
                     me.x + me.radius, me.y + me.radius, target.vx, target.vy, me.weapon.speed);
                 var timeToHit = Helpers.magnitude(target.x - me.x, target.y - me.y) 
                     / me.weapon.speed;
-                var p2 = Helpers.posOnReverse(target, timeToHit, fps);
-                if (p2 === false) {
-                    p2 = [aim.x, aim.y];
-                } else {
-                    p2[0] -= me.x;
-                    p2[1] -= me.y;
-                }
+                var p2 = Helpers.posOnReverse(
+                    target.x, target.y, target.vx, target.vy,
+                    target.movementAccelMag, target.maxSpeed, timeToHit, fps);
+                p2[0] -= me.x;
+                p2[1] -= me.y;
                 var rand = Math.random();
                 if (rand >= 0.5) 
                     rand = 1.0;
@@ -919,29 +916,36 @@ Helpers = {
         else return false;
     },
 
-    posOnReverse: function (me, d, fps) {
+    posOnReverse: function (x, y, vx, vy, accel, maxSpeed, d, fps) {
         var tick = 1000 / fps;
-        var currentSpeed = this.magnitude(me.vx, me.vy);
-        var timeToZero = currentSpeed / me.movementAccelMag * tick;
-        var timeToMax = me.maxSpeed / me.movementAccelMag * tick;
-        var averageSpeed = (currentSpeed + me.maxSpeed) / 4;
-        var s = timeToZero + timeToMax;
-        var diff = d - s;
+        var currentSpeed = this.magnitude(vx, vy);
+        var timeToZero = currentSpeed / accel * tick;
+        var timeToMax = maxSpeed / accel * tick;
+
         if (currentSpeed === 0) {
-            return false;
+            return [x, y];
         } else {
-            var nmeVx = me.vx / currentSpeed;
-            var nmeVy = me.vy / currentSpeed;
+            var nx = vx / currentSpeed;
+            var ny = vy / currentSpeed;
         }
-        if (diff < 0) {
-            var p2x = averageSpeed * -nmeVx * d + me.x;
-            var p2y = averageSpeed * -nmeVy * d + me.y;
+
+        if (d < timeToZero) {
+            var p2x = currentSpeed / 2 * nx * d + x;
+            var p2y = currentSpeed / 2 * ny * d + y;
+        } else if (d < timeToZero + timeToMax) {
+            var p2x = currentSpeed / 2 * nx * timeToZero + x;
+            var p2y = currentSpeed / 2 * ny * timeToZero + y;
+            p2x += maxSpeed / 2 * -nx * (d - timeToZero);
+            p2y += maxSpeed / 2 * -ny * (d - timeToZero);
         } else {
-            var p2x = averageSpeed * -nmeVx * s + me.x;
-            var p2y = averageSpeed * -nmeVy * s + me.y;
-            p2x -= me.maxSpeed * nmeVx * diff;
-            p2y -= me.maxSpeed * nmeVy * diff;
+            var p2x = currentSpeed / 2 * nx * timeToZero + x;
+            var p2y = currentSpeed / 2 * ny * timeToZero + y;
+            p2x += maxSpeed / 2 * -nx * timeToMax;
+            p2y += maxSpeed / 2 * -ny * timeToMax;
+            p2x += maxSpeed * -nx * (d - timeToMax - timeToZero);
+            p2y += maxSpeed * -ny * (d - timeToMax - timeToZero);
         }
+
         return [p2x, p2y];
     }
 }
