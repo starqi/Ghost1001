@@ -8,6 +8,12 @@ var HIGHEST_Y = MAP_HEIGHT * 40 - 100;
 function changePic() {
   var portrait = document.getElementById("portrait");
   var opponent = document.getElementById("opponent");
+  var s = window.location.hash.substring(1);
+  if (s in playerData) {
+      opponent.value = s;
+      init();
+      return;
+  }
   portrait.src = opponent.value + ".jpg";
 }
 
