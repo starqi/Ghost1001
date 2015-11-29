@@ -118,7 +118,7 @@ function createDuelBot(target, me, interval, fps, shootDist) {
                     me.aimY = -dotToDodge.vy;
                     return;
                 }
-                dotToDodge.dodgedBy = me;
+                //dotToDodge.dodgedBy = me;
             }
 
             dotToDodge = null;
