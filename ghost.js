@@ -160,7 +160,7 @@ function createDuelBot(target, me, interval, fps, shootDist) {
                 p2[0] -= me.x;
                 p2[1] -= me.y;
                 var rand = Math.random();
-                if (rand >= 0.5) 
+                if (rand >= 0.32) 
                     rand = 1.0;
                 me.aimX = rand * (aim.x - p2[0]) + p2[0];
                 me.aimY = rand * (aim.y - p2[1]) + p2[1];
