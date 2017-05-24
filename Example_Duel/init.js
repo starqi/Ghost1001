@@ -1,4 +1,8 @@
 // SHIT CODE WARNING DONT CARE
+// SHIT CODE WARNING DONT CARE
+// SHIT CODE WARNING DONT CARE
+// SHIT CODE WARNING DONT CARE
+// SHIT CODE WARNING DONT CARE
 
 var MAP_WIDTH = 20;
 var MAP_HEIGHT = 20;
@@ -61,6 +65,10 @@ var playerData = {
   "pigm": {
       name: "Pigm",
       shout: "Greatest CA tank Infantry"
+  },
+  "hank": {
+      name: "Henry the Cheater",
+      shout: "lmfao this kid thinks he can beat me"
   }
 };
 
@@ -144,6 +152,15 @@ a.color = '#ffff00';
 a.speed = 0.21;
 a.shots = 100;
 a.reload = 4000;
+a.rate = 20;
+
+a = playerData["hank"].weapon = new Weapon();
+a.damage = 90;
+a.lifetime = 2000;
+a.color = '#ff00ff';
+a.speed = 0.25;
+a.shots = 100;
+a.reload = 0;
 a.rate = 20;
 
 function init() {
@@ -472,6 +489,8 @@ function init() {
             computer.bounceMultiplier = 1.0;
         } else if (opponent.value == "pigm") {
             computer.maxHp = computer.hp = 5000;
+        } else if (opponent.value == "hank") {
+            computer.maxHp = computer.hp = 300;
         } else if (opponent.value == "johny") {
             computer.movementAccelMag = 0.04;
             computer.maxSpeed = 4;
@@ -639,6 +658,27 @@ function init() {
                   computer.vertical = 0;
               }
             });
+        } else if (opponent.value == "hank") {
+          data.backgroundProcesses.push({
+              off: false,
+              interval: 10,
+              func: function (controller) {
+                  var aim = Helpers.aimbot(me.x + me.radius, me.y + me.radius,
+                      computer.x + computer.radius, computer.y + computer.radius, 
+                      me.vx, me.vy, computer.weapon.speed);
+                  var angle = Math.random() * 1.8;
+                  aim.x = Math.cos(angle) * aim.x - Math.sin(angle) * aim.y;
+                  aim.y = Math.sin(angle) * aim.x + Math.cos(angle) * aim.y;
+                  computer.aimX = aim.x;
+                  computer.aimY = aim.y;
+                  computer.horizontal = 0;
+                  computer.vertical = 0;
+                  if (Math.random() < 0.05) {
+                      computer.x = HIGHEST_X * Math.random();
+                      computer.y = HIGHEST_Y * Math.random();
+                  }
+              }
+            })
         } else {
             alert("Error: Programmer is retarded");
             throw "ur retarded";
