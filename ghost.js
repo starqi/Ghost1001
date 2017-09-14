@@ -870,7 +870,7 @@ Helpers = {
                 xt2 = temp;
             }
         } else if (xt1 == false) {
-            xt1 == 0; 
+            xt1 = 0; 
         } else if (xt2 == false) {
             xt2 = xt1;
             xt1 = 0;
@@ -890,7 +890,7 @@ Helpers = {
                 yt2 = temp;
             }
         } else if (yt1 == false) {
-            yt1 == 0; 
+            yt1 = 0; 
         } else if (yt2 == false) {
             yt2 = yt1;
             yt1 = 0;
