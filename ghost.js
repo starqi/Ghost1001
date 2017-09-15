@@ -408,7 +408,6 @@ function createInfantryScene(data) {
         Draw.drawRect(context, bgX1, bgY1, bgX2, bgY2, data.floorColor);
 
         controller.grid.loopPixels(x1, y1, x1 + width - 1, y1 + height - 1, function (b, i, j) {
-        
             if (b.tile) {
                 var tileX = i * controller.grid.blockLength - x1;
                 var tileY = j * controller.grid.blockLength - y1;
@@ -421,8 +420,10 @@ function createInfantryScene(data) {
                     Draw.drawRect(context, tileX, tileY, controller.grid.blockLength, controller.grid.blockLength, '#242424');
                 }
             }
+        });
 
-            for (key in b.rects) {
+        controller.grid.loopPixels(x1, y1, x1 + width - 1, y1 + height - 1, function (b, i, j) {
+            for (var key in b.rects) {
                 var rect = b.rects[key];
                 var rectX = rect.x - x1;
                 var rectY = rect.y - y1;
@@ -451,8 +452,10 @@ function createInfantryScene(data) {
                         Draw.drawRect(context, rectX, rectY, rect.width, rect.height, 'white');
                 }
             }
+        });
 
-            for (key in b.dots) {
+        controller.grid.loopPixels(x1, y1, x1 + width - 1, y1 + height - 1, function (b, i, j) {
+            for (var key in b.dots) {
                 var dot = b.dots[key];
                 Draw.drawCircle(context, dot.x - x1, dot.y - y1, 2, dot.color);
             }
@@ -852,68 +855,31 @@ Helpers = {
         return k;
     },
 
-    timeToHitRect: function(x, y, vx, vy, ax, ay, bx, by, rvx, rvy) { // Must have ax < bx, ay < by
+    swap: function(xy) {
+        let temp = xy.x;
+        xy.x = xy.y;
+        xy.y = temp;
+    },
 
-        var xt1 = this.timeToHit(x, ax, vx, rvx);
-        var xt2 = this.timeToHit(x, bx, vx, rvx);
-        var yt1 = this.timeToHit(y, ay, vy, rvy);
-        var yt2 = this.timeToHit(y, by, vy, rvy);
-        var xInf = false;
-        var yInf = false;
-        var xNever = false;
-        var yNever = false;
-
-        if (xt1 != false && xt2 != false) {
-            if (xt1 > xt2) {
-                var temp = xt1;
-                xt1 = xt2;
-                xt2 = temp;
-            }
-        } else if (xt1 == false) {
-            xt1 = 0; 
-        } else if (xt2 == false) {
-            xt2 = xt1;
-            xt1 = 0;
-        } else {
-            if (x >= ax && x <= bx) {
-                xInf = true;
-            } else {
-                xNever = true;
-            }
-            xt1 = xt2 = -1;
-        }
-
-        if (yt1 != false && yt2 != false) {
-            if (yt1 > yt2) {
-                var temp = yt1;
-                yt1 = yt2;
-                yt2 = temp;
-            }
-        } else if (yt1 == false) {
-            yt1 = 0; 
-        } else if (yt2 == false) {
-            yt2 = yt1;
-            yt1 = 0;
-        } else {
-            if (y >= ay && y <= by) {
-                yInf = true;
-            } else {
-                yNever = true;
-            }
-            yt1 = yt2 = -1;
-        }
-   
-        if (xNever || yNever) return false;
-        if (yInf) {
-            if (xInf) return 0; else return xt1;
-        }
-        if (xInf) {
-            return yt1; 
-        }
-        if (xt1 >= yt1 && xt1 <= yt2) return xt1;
-        else if (xt2 >= yt1 && xt2 <= yt2) return yt1;
-        else if (xt1 < yt1 && xt2 > yt2) return yt1;
-        else return false;
+    timeToHitRect: function(x, y, vx, vy, ax, ay, bx, by, rvx, rvy) { // Must have ax < bx, ay < by (valid rect)
+        // Collision interval for each axis, always x < y
+        var xt = {x: this.timeToHit(x, ax, vx, rvx), y: this.timeToHit(x, bx, vx, rvx)};
+        var yt = {x: this.timeToHit(y, ay, vy, rvy), y: this.timeToHit(y, by, vy, rvy)};
+        // If any interval doesn't exist, will never collide
+        if (xt.x === false && xt.y === false) return false;
+        if (yt.x === false && yt.y === false) return false;
+        // Preprocess false to 0 to create valid collision intervals (think about x or y = 0 case)
+        if (xt.x === false) xt.x = 0;
+        else if (xt.y === false) xt.y = 0;
+        if (yt.x === false) yt.x = 0;
+        else if (yt.y === false) yt.y = 0;
+        // Make it so that x < y always
+        if (xt.y < xt.x) this.swap(xt);
+        if (yt.y < yt.x) this.swap(yt);
+        // If no overlap, then will never collide
+        if (xt.x > yt.y || yt.x > xt.y) return false;
+        // If overlap, then pick the 2nd biggest along timeline (visualize)
+        return Math.max(xt.x, yt.x);
     },
 
     posOnReverse: function (x, y, vx, vy, accel, maxSpeed, d, fps) {
@@ -1190,7 +1156,7 @@ function Grid(blockWidth, blockHeight, blockLength) {
         this.tile = null;
 
         this.enumerateDotTouchRects = function (dot, func) {
-            for (key in this.rects) {
+            for (var key in this.rects) {
                 var potentialRect = this.rects[key];
                 if (Helpers.dotRectCollision(dot.x, dot.y, 
                     potentialRect.x, potentialRect.y,
@@ -1203,7 +1169,7 @@ function Grid(blockWidth, blockHeight, blockLength) {
         };
 
         this.enumerateRectTouchRects = function (rect, func) {
-            for (key in this.rects) {
+            for (var key in this.rects) {
                 var potentialRect = this.rects[key];
                 if (Helpers.rectCollision(potentialRect.x, potentialRect.y,
                     potentialRect.x + potentialRect.width,
