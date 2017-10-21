@@ -883,10 +883,10 @@ Helpers = {
     },
 
     posOnReverse: function (x, y, vx, vy, accel, maxSpeed, d, fps) {
-        var tick = 1000 / fps;
+        //var tick = 1000 / fps;
         var currentSpeed = this.magnitude(vx, vy);
-        var timeToZero = currentSpeed / accel * tick;
-        var timeToMax = maxSpeed / accel * tick;
+        var timeToZero = currentSpeed / accel;// * tick;
+        var timeToMax = maxSpeed / accel;// * tick;
 
         if (currentSpeed === 0) {
             return [x, y];
