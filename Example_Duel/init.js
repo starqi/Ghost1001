@@ -38,6 +38,10 @@ var playerData = {
       name: "johnyric0",
       shout: "nub rage yay"
   },
+  "abbath": {
+      name: "Abbath",
+      shout: "do u even lift bro"
+  },
   "boog": {
       name: "B o o g",
       shout: "Master of the 606"
@@ -99,6 +103,17 @@ a.speed = 0.225;
 a.shots = 3;
 a.reload = 700;
 a.rate = 100;
+
+a = playerData["abbath"].weapon = new Weapon();
+a.damage = 37;
+a.lifetime = 1200;
+a.color = '#f4f142';
+a.speed = 0.195;
+a.shots = 3;
+a.reload = 1000;
+a.rate = 100;
+a.simultaneousBullets = 5;
+a.spread = 3.14 / 8;
 
 a = playerData["nos"].weapon = new Weapon();
 a.damage = 75;
@@ -442,7 +457,7 @@ function init() {
 
       }
 
-        if (opponent.value == "boog") {
+        if (opponent.value == "boog" || opponent.value == "abbath") {
             var weapon = playerData["boog"].weapon;
         } else {
             var weapon = new Weapon();
@@ -597,8 +612,17 @@ function init() {
                 }
               }
           });
-        } else if (opponent.value == "boog") {
+        } else if (opponent.value == "boog" || opponent.value == "abbath") {
           data.backgroundProcesses.push(createDuelBot(me, computer, 1, 60, canvas.width / 1.8));
+           var usingSg = false;
+          data.backgroundProcesses.push({
+              off: false,
+              interval: 2000,
+              func: function (controller) {
+                  usingSg = !usingSg;
+                  computer.weapon = usingSg ? playerData["abbath"].weapon : playerData["boog"].weapon;
+              }
+          });
         } else if (opponent.value == "nos") {
           data.backgroundProcesses.push(createDuelBot(me, computer, 450, 60, canvas.width / 1.8));
         } else if (opponent.value == "ninj") {

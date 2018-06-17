@@ -290,7 +290,7 @@ function Character(id, weapon, radius) {
     this.tileSheets = [];
 
     var bulletIdCounter = 0;
-    this.createBullet = function () {
+    this.createBullet = function (offAngle) {
         var bullet = {};
         bullet.id = this.id + bulletIdCounter;
         bulletIdCounter++;
@@ -298,8 +298,9 @@ function Character(id, weapon, radius) {
         bullet.owner = this;
         bullet.x = this.x + this.radius; 
         bullet.y = this.y + this.radius;
-        bullet.vx = this.aimX;
-        bullet.vy = this.aimY;
+        var rotatedAim = Helpers.rotate(this.aimX, this.aimY, offAngle);
+        bullet.vx = rotatedAim.x;
+        bullet.vy = rotatedAim.y;
         Helpers.changeMagnitudeRef('vx', 'vy', bullet, this.weapon.speed);
         bullet.damage = this.weapon.damage;
         bullet.lifetime = this.weapon.lifetime;
@@ -324,6 +325,8 @@ function Weapon() {
     this.shots = 3;
     this.reload = 1000;
     this.rate = 200;
+    this.spread = 0;
+    this.simultaneousBullets = 1;
 }
 
 function createInfantryScene(data) {
@@ -655,8 +658,12 @@ function createInfantryScene(data) {
                         character.shotsBeforeReload = 0;
                     } else if (character.timeTillShot == 0) { 
                         var reducedForDot = Helpers.changeMagnitude(character.aimX, character.aimY, character.weapon.speed);
-                        var bullet = character.createBullet();
-                        controller.grid.registerDot(bullet);
+                        var halfSpread = character.weapon.spread / 2;
+                        var angleBetween = character.weapon.spread / character.weapon.simultaneousBullets;
+                        for (var i = 0; i < character.weapon.simultaneousBullets; ++i) {
+                            var bullet = character.createBullet(-halfSpread + i * angleBetween);
+                            controller.grid.registerDot(bullet);
+                        }
                         character.timeTillShot = character.weapon.rate; 
                         character.shotsBeforeReload++;
                     }
@@ -803,6 +810,12 @@ function registerControls(canvas) {
 }
 
 Helpers = {
+
+    rotate: function (x, y, radians) {
+        var _x = x * Math.cos(radians) - y * Math.sin(radians);
+        var _y = x * Math.sin(radians) + y * Math.cos(radians);
+        return {x: _x, y: _y};
+    },
 
     magnitude: function(x, y) {
         return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
